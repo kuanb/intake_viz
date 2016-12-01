@@ -17,6 +17,8 @@
 
   <div id='timeSeries'></div>
 
+  <div id='timeSeriesGrowth'></div>
+
 </body>
 
 <script type="text/javascript">
@@ -27,10 +29,10 @@
   function buildPage(data) {
     // load all charts into global namespace
     window.chart1 = buildChart1(data);
+    window.chart2 = buildChart2(data);
   }
 
   function buildChart1 (data) {
-    console.log(data)
 
     var timeline = data.map(function (oneOrgsData) {
       var dailyRates = oneOrgsData.daily_totals.map(function(day) {
@@ -47,6 +49,7 @@
     // this creates the xs reference x-axis that we will use
     var xs = {};
     var columns = [];
+
     data.forEach(function(org, i) {
       var name = org.org.name;
       var xName = 'x' + String(i + 1); 
@@ -74,6 +77,65 @@
         }
       },
       bindto: '#timeSeries'
+    });
+
+    return chart1;
+  }
+
+  function buildChart2 (data) {
+
+    var timeline = data.map(function (oneOrgsData) {
+      var dailyRates = oneOrgsData.daily_totals.map(function(day) {
+        day.date = moment(day.date).format('YYYY-MM-DD');
+
+        day.count = Number(day.count);
+        if (isNaN(day.count)) day.count = 0;
+
+        return day;
+      });
+      return dailyRates;
+    });
+
+    // this creates the xs reference x-axis that we will use
+    var xs = {};
+    var columns = [];
+
+    data.forEach(function(org, i) {
+      var name = org.org.name;
+      var xName = 'x' + String(i + 1); 
+      xs[name] = xName;
+
+      // do somethigng that creates a column
+      columns.push([xName].concat(timeline[i].map(function(d) {return d.date})));
+      columns.push([name].concat(timeline[i].map(function(d) {return d.count})));
+    });
+
+    columns = columns.map(function(col) {
+      if (col[0][0] !== 'x') {
+        for (var i = 2; i < col.length; i++) {
+          col[i] = col[i - 1] + col[i];
+        }
+      }
+      return col;
+    });
+
+
+    var chart2 = c3.generate({
+      data: {
+        xs: xs,
+        columns: columns,
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+        },
+        y: {
+          padding: {
+            bottom:0
+          }
+        }
+      },
+      bindto: '#timeSeriesGrowth'
     });
 
     return chart1;
